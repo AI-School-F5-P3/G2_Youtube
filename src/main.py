@@ -1,9 +1,12 @@
 from fetch_comments import fetch_comments
 from predict_hate import classify_hate
 from database import create_database, save_prediction_to_db
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 # load the API key
-API_KEY = "AIzaSyCel7F1O8f4wbBTSehmS3p1jCLQEbfvpqE"
+API_KEY = os.getenv('YOUTUBE_API_KEY')
 VIDEO_URL = "https://www.youtube.com/watch?v=_TqMek9evXs&ab_channel=NowThisImpact"
 
 
