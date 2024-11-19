@@ -1,216 +1,166 @@
-import pandas as pd
-import numpy as np
-import random
-import re
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, LeakyReLU
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+import matplotlib.pyplot as plt
 import pickle
+import numpy as np
 
-# Diccionario ampliado de sinónimos para palabras inapropiadas
-synonym_dict = {
-    "bad": [
-        "poor", "unpleasant", "negative", "subpar", "inferior", "detrimental", 
-        "harmful", "undesirable", "unfavorable", "awful", "terrible", 
-        "atrocious", "lousy", "dismal", "infernal", "disagreeable", 
-        "unacceptable", "regrettable", "deplorable", "vile", "offensive", 
-        "unsatisfactory", "substandard", "crappy", "horrendous", "dire", 
-        "grievous", "wretched", "miserable", "abysmal", "hopeless", 
-        "shoddy", "depressing", "gross", "nasty", "abhorrent", "foul"
-    ],
-    "sexist": [
-        "slut", "whore", "bimbo", "wench", "hag", "witch", 
-        "hussy", "gold-digger", "spinster", "ballbuster", "dumb blonde", 
-        "nag", "bitch", "broad", "chick", "doll", "skank", 
-        "feminazi", "sugar daddy", "sugar baby", "man up", "throw like a girl", 
-        "stay in the kitchen", "macho", "misogynist", "womanizer", 
-        "emasculate", "boyish", "sissy", "girly", "trophy wife", "domestic"
-    ],
-    "racist": [
-        "coon", "spic", "chink", "gook", "nigger", "cracker", 
-        "honky", "wetback", "jungle bunny", "redskin", "slant-eye", 
-        "beaner", "sand nigger", "gypsy", "terrorist", "illegal", 
-        "half-breed", "mongrel", "white trash", "yellow peril", "savage", 
-        "ape", "barbarian", "tribal", "ghetto", "thug", "oriental", 
-        "foreigner", "exotic", "chocolate face", "banana", "curry muncher", 
-        "snowflake"
-    ],
-    "hate": [
-        "dislike", "detest", "loathe", "despise", "abhor", "abominate", 
-        "resent", "disdain", "scorn", "revile", "revulsion", "enmity", 
-        "animosity", "antipathy", "malice", "hostility", "intolerance", 
-        "bitterness", "contempt", "detestation", "disrelish", "disgust", 
-        "repugnance", "aversion", "loathing", "odium", "spite", "hatred", 
-        "animus", "wrath", "vindictiveness", "alienation", "grudge", 
-        "rancor", "irritation", "exasperation", "belligerence"
-    ],
+class ToxicityClassifier:
+    def __init__(self):
+        self.model = None
+        self.vectorizer = None
+        
+    def create_model(self, input_dim):
+        model = Sequential([
+            Dense(256, input_dim=input_dim, kernel_regularizer=l2(0.01)),
+            LeakyReLU(alpha=0.1),
+            Dropout(0.5),
+            Dense(128, kernel_regularizer=l2(0.01)),
+            LeakyReLU(alpha=0.1),
+            Dropout(0.5),
+            Dense(64, kernel_regularizer=l2(0.01)),
+            LeakyReLU(alpha=0.1),
+            Dropout(0.5),
+            Dense(1, activation='sigmoid')
+        ])
+        
+        model.compile(
+            optimizer=Adam(learning_rate=0.0001),
+            loss='binary_crossentropy',
+            metrics=['accuracy']
+        )
+        
+        return model
     
-    "stupid": [
-        "foolish", "unwise", "silly", "ignorant", "dim-witted", "brainless", 
-        "daft", "dull", "dense", "witless", "clueless", "half-witted", 
-        "inane", "mindless", "moronic", "simple-minded", "asinine", 
-        "imbecilic", "blockheaded", "slow-witted", "ridiculous", "absurd", 
-        "laughable", "nonsensical", "idiotic", "senseless", "naive", 
-        "obtuse", "vacuous", "preposterous", "gullible", "childish", 
-        "unthinking", "harebrained", "brain-dead", "irrational", "blundering"
-    ],
-   "homophobic": [
-        "fag", "dyke", "tranny", "fairy", "fruit", "queen", 
-        "sodomite", "pervert", "deviant", "pansy", "flamer", 
-        "butch", "queer", "faggot", "breeder", "closeted", "limp wrist", 
-        "homosexual agenda", "lesbo", "nelly", "top or bottom", 
-        "straight-acting", "muff diver", "invert", "deviant", "cross-dresser", 
-        "drag queen", "gayboy", "carpet muncher", "bent", "pillow biter"
-    ],  
-    "ugly": [
-        "unattractive", "hideous", "unsightly", "grotesque", "repulsive", 
-        "disfigured", "plain", "homely", "frightful", "monstrous", 
-        "gruesome", "displeasing", "repugnant", "unappealing", 
-        "offensive-looking", "ghastly", "deformed", "uncomely", 
-        "horrendous", "beastly", "gritty", "uninviting", "coarse", 
-        "ungraceful", "clumsy", "unflattering"
-    ],
+    def train_and_evaluate(self, X_train, X_test, y_train, y_test, vectorizer):
+        self.vectorizer = vectorizer
+        
+        self.model = self.create_model(X_train.shape[1])
+        
+        early_stopping = EarlyStopping(
+            monitor='val_loss',
+            patience=10,
+            restore_best_weights=True
+        )
+        
+        reduce_lr = ReduceLROnPlateau(
+            monitor='val_loss',
+            factor=0.5,
+            patience=5,
+            min_lr=0.00001
+        )
+        
+        history = self.model.fit(
+            X_train,
+            y_train,
+            epochs=100,
+            batch_size=64,
+            validation_split=0.2,
+            callbacks=[early_stopping, reduce_lr],
+            verbose=1
+        )
+        
+        # Predicciones
+        y_train_pred = (self.model.predict(X_train) > 0.4).astype("int32")  # Ajustar umbral
+        y_test_pred = (self.model.predict(X_test) > 0.4).astype("int32")
+        
+        # Métricas
+        train_metrics = self._calculate_metrics(y_train, y_train_pred)
+        test_metrics = self._calculate_metrics(y_test, y_test_pred)
+        
+        # Análisis de overfitting
+        overfitting_gaps = {
+            metric: train_metrics[metric] - test_metrics[metric]
+            for metric in train_metrics.keys()
+        }
+        
+        results = {
+            'train_metrics': train_metrics,
+            'test_metrics': test_metrics,
+            'overfitting_gaps': overfitting_gaps,
+            'history': history.history
+        }
+        
+        return results
     
-    "angry": [
-        "mad", "irate", "furious", "annoyed", "enraged", "infuriated", 
-        "indignant", "resentful", "irritated", "outraged", "seething", 
-        "wrathful", "vexed", "incensed", "fuming", "raging", "livid", 
-        "cross", "exasperated", "provoked", "heated", "agitated", 
-        "choleric", "upset", "boiling", "irascible", "testy", "snappish", 
-        "sulky", "argumentative", "fiery", "belligerent", "displeased"
-    ],
+    def _calculate_metrics(self, y_true, y_pred):
+        return {
+            'accuracy': accuracy_score(y_true, y_pred),
+            'precision': precision_score(y_true, y_pred, average='weighted'),
+            'recall': recall_score(y_true, y_pred, average='weighted'),
+            'f1': f1_score(y_true, y_pred, average='weighted')
+        }
     
-    "sad": [
-        "unhappy", "miserable", "downcast", "depressed", "melancholy", 
-        "sorrowful", "heartbroken", "despondent", "grief-stricken", 
-        "blue", "gloomy", "forlorn", "dejected", "disheartened", 
-        "wistful", "woeful", "downhearted", "pained", "crestfallen", 
-        "troubled", "discouraged", "disconsolate", "desolate", 
-        "tearful", "heavy-hearted", "doleful", "lugubrious", 
-        "morose", "mournful", "sullen", "somber", "weeping", 
-        "regretful", "longing"
-    ],
+    def predict(self, texts):
+        X = self.vectorizer.transform(texts)
+        
+        probabilities = self.model.predict(X)
+        predictions = (probabilities > 0.4).astype(int)  # Ajustar umbral
+        
+        return predictions, probabilities
     
-    "fear": [
-        "anxiety", "dread", "apprehension", "panic", "terror", "fright", 
-        "horror", "trepidation", "nervousness", "unease", "alarm", 
-        "cowardice", "timidity", "angst", "phobia", "consternation", 
-        "jitters", "worry", "concern", "intimidation", "foreboding", 
-        "paranoia", "disquiet", "distress", "trembling", "shaking", 
-        "discomposure", "insecurity", "shock", "agitation", "tension", 
-        "fearfulness", "hesitation"
-    ]
-}
+    def save_model(self, filepath='toxicity_model'):
+        self.model.save(f'{filepath}.h5')
+        
+        with open(f'{filepath}_vectorizer.pkl', 'wb') as f:
+            pickle.dump(self.vectorizer, f)
 
-# Diccionario de expresiones ofensivas
-expression_dict = {
-    "go to hell": ["burn in hell", "rot in hell", "fall to the abyss"],
-    "shut up": ["silence yourself", "keep quiet", "zip it"],
-    "you are stupid": ["you are dumb", "you are ignorant", "you are a fool"],
-    # Agrega más expresiones según sea necesario
-}
-
-def add_unique_synonyms(existing_dict, new_dict):
-    """Agrega sinónimos de new_dict a existing_dict solo si no están repetidos."""
-    for key, synonyms in new_dict.items():
-        if key not in existing_dict:
-            existing_dict[key] = synonyms
-        else:
-            existing_synonyms = set(existing_dict[key])
-            for synonym in synonyms:
-                if synonym not in existing_synonyms:
-                    existing_dict[key].append(synonym)
-    return existing_dict
-
-def clean_text(text):
-    """Limpia el texto convirtiéndolo a minúsculas y elimina puntuación."""
-    text = text.lower()  # Convertir a minúsculas
-    text = re.sub(r'\W', ' ', text)  # Eliminar caracteres no alfanuméricos
-    text = re.sub(r'\s+', ' ', text).strip()  # Eliminar espacios extra
-    return text
-
-def remove_stop_words(text):
-    """Elimina palabras vacías."""
-    stop_words = set(["the", "is", "in", "and", "to", "a", "an"])
-    return ' '.join([word for word in text.split() if word not in stop_words])
-
-def lemmatize(text):
-    """Simulación simple de lematización usando un diccionario."""
-    words = text.split()
-    lemmatized_words = []
-    
-    for word in words:
-        for key in synonym_dict:
-            if word in synonym_dict[key]:
-                lemmatized_words.append(key)
-                break
-        else:
-            lemmatized_words.append(word)  # Si no hay sinónimo, se mantiene la palabra original
-    
-    return ' '.join(lemmatized_words)
-
-def replace_with_synonyms(text, synonym_dict):
-    """Reemplaza palabras en el texto con sinónimos del diccionario."""
-    words = text.split()
-    new_words = []
-    
-    for word in words:
-        word_cleaned = clean_text(word)  # Limpia la palabra
-        if word_cleaned in synonym_dict:
-            new_word = random.choice(synonym_dict[word_cleaned])
-            new_words.append(new_word)
-        else:
-            new_words.append(word)
-    
-    return ' '.join(new_words)
-
-def replace_expressions(text, expression_dict):
-    """Reemplaza expresiones en el texto con equivalentes ofensivos."""
-    for expression, replacements in expression_dict.items():
-        pattern = re.compile(re.escape(expression), re.IGNORECASE)
-        if pattern.search(text):
-            replacement = random.choice(replacements)
-            text = pattern.sub(replacement, text)
-    return text
-
-def preprocess_text(text):
-    """Aplica todas las técnicas de preprocesamiento."""
-    text = clean_text(text)
-    text = remove_stop_words(text)
-    text = lemmatize(text)
-    return text
-
-def main():
-    # Cargar datos desde un archivo CSV
-    df = pd.read_csv('dataset.csv')  # Reemplaza con la ruta correcta de tu dataset
-    
-    # Mantener solo las columnas 'Text' e 'IsToxic'
-    df = df[['Text', 'IsToxic']]
-    
-    # Eliminar duplicados
-    df.drop_duplicates(inplace=True)
-
-    # Verificar si hay valores nulos y eliminarlos (opcional)
-    df.dropna(inplace=True)
-
-    print("Texto original:")
-    print(df['Text'].head())
-
-    # Aumentar los datos reemplazando palabras en el texto con sinónimos
-    df['augmented_text'] = df['Text'].apply(lambda x: replace_with_synonyms(x, synonym_dict))
-    
-    # Aumentar los datos reemplazando expresiones ofensivas
-    df['augmented_text'] = df['augmented_text'].apply(lambda x: replace_expressions(x, expression_dict))
-
-    print("\nTexto aumentado:")
-    print(df[['Text', 'augmented_text']].head())
-
-    # Preprocesar textos
-    df['cleaned_text'] = df['Text'].apply(preprocess_text)
-    
-    print("\nTexto preprocesado:")
-    print(df[['Text', 'cleaned_text']].head())
-
-    # Guardar el DataFrame modificado en un nuevo archivo .pkl
-    with open('processed_data.pkl', 'wb') as f:
-        pickle.dump(df, f)
+    def plot_training_history(self, history):
+        plt.figure(figsize=(12, 4))
+        
+        plt.subplot(1, 2, 1)
+        plt.plot(history['accuracy'], label='Training Accuracy')
+        plt.plot(history['val_accuracy'], label='Validation Accuracy')
+        plt.title('Model Accuracy')
+        plt.xlabel('Epoch')
+        plt.ylabel('Accuracy')
+        plt.legend()
+        
+        plt.subplot(1, 2, 2)
+        plt.plot(history['loss'], label='Training Loss')
+        plt.plot(history['val_loss'], label='Validation Loss')
+        
+        plt.title('Model Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.legend()
+        
+        plt.tight_layout()
+        plt.show()
 
 if __name__ == "__main__":
-    main()
+    # Cargar datos preprocesados
+    with open('processed_data.pkl', 'rb') as f:
+        data = pickle.load(f)
+
+    classifier = ToxicityClassifier()
+    
+    # Entrenar y evaluar
+    results = classifier.train_and_evaluate(
+       data['X_balanced'],
+       data['X_test'],
+       data['y_balanced'],
+       data['y_test'],
+       data['vectorizer']
+    )
+    
+    print("\nMétricas de entrenamiento:")
+    for metric, value in results['train_metrics'].items():
+       print(f"{metric}: {value:.4f}")
+    
+    print("\nMétricas de prueba:")
+    for metric, value in results['test_metrics'].items():
+       print(f"{metric}: {value:.4f}")
+    
+    print("\nAnálisis de overfitting:")
+    for metric, value in results['overfitting_gaps'].items():
+       print(f"Diferencia en {metric}: {value:.4f}")
+    
+    # Guardar el modelo
+    classifier.save_model('modelo_toxicidad_final')
+
+    # Graficar el historial de entrenamiento
+    classifier.plot_training_history(results['history'])
