@@ -3,6 +3,9 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import re
 import unicodedata
+from src.database import save_prediction_to_db, get_predictions, create_database
+
+create_database()
 
 
 def clean_text(text):
@@ -91,6 +94,10 @@ try:
         with st.spinner('Analyzing...'):
             is_toxic, probability, cleaned_text = predict_toxicity(
                 text_input, tokenizer, model)
+            # Guardar predicción en la base de datos
+            label = "TOXIC" if is_toxic else "NON-TOXIC"
+            save_prediction_to_db([text_input], [(label, probability)])
+            st.success("✅ Resultado guardado en la base de datos")
 
         st.subheader("Processed Text:")
         col1, col2 = st.columns(2)
@@ -130,3 +137,65 @@ try:
 except Exception as e:
     st.error(f"Error loading the model: {str(e)}")
     st.error("Make sure you have the correct model name from Hugging Face.")
+
+
+st.markdown("---")
+st.subheader("📋 Historial de Predicciones")
+
+show_history = st.button("Mostrar historial de predicciones")
+
+if show_history:
+    with st.spinner('Cargando historial...'):
+        predictions = get_predictions()
+
+        if predictions:
+            # Crear un DataFrame para mostrar los datos de forma ordenada
+            import pandas as pd
+            df = pd.DataFrame(
+                predictions,
+                columns=['ID',
+                         'Comentario',
+                         'Clasificación',
+                         'Nivel de Toxicidad']
+            )
+
+            # Formatear el nivel de toxicidad como porcentaje
+            df['Nivel de Toxicidad'] = df['Nivel de Toxicidad'].apply(
+                lambda x: f"{x:.1%}")
+
+            # Aplicar estilo condicional
+            def color_toxicity(val):
+                if val == 'TOXIC':
+                    return 'background-color: #ffcdd2'
+                return 'background-color: #c8e6c9'
+
+            # Mostrar la tabla con estilo
+            st.dataframe(
+                df.style.applymap(
+                    color_toxicity,
+                    subset=['Clasificación']
+                ),
+                use_container_width=True,
+                hide_index=True
+            )
+
+            # Añadir algunas estadísticas
+            st.markdown("### 📊 Estadísticas")
+            col1, col2 = st.columns(2)
+
+            with col1:
+                total_toxic = len(df[df['Clasificación'] == 'TOXIC'])
+                total_records = len(df)
+                st.metric(
+                    "Porcentaje de comentarios tóxicos",
+                    f"{(total_toxic/total_records)*100:.1f}%"
+                )
+
+            with col2:
+                st.metric(
+                    "Total de predicciones",
+                    f"{total_records}"
+                )
+
+else:
+    st.info("No hay predicciones guardadas en la base de datos.")
