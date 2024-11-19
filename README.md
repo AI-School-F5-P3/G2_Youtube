@@ -2,13 +2,15 @@
   <img src="asset/Designer.png" alt="YouTube Hate Speech Detection Banner" width="1000" height="400"/>
 </div>
 
-# YouTube Hate Speech Detection
+# YouTube Hate Speech Detection ❌​✔️​
 This application analyzes YouTube comments to detect hate speech using Natural Language Processing and Machine Learning techniques.
+
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://toxic-nlp.streamlit.app/)
 
 ## Overview
 This tool helps identify and analyze hate speech in YouTube comments, providing a way to monitor and understand toxic content in social media platforms.
 
-##🌟 Main Features of Toxic Comment Detector
+## 🌟 Main Features of Toxic Comment Detector
 
 ### 1. User Interface
 - Clear title and application description
@@ -66,7 +68,7 @@ This tool helps identify and analyze hate speech in YouTube comments, providing 
   - pandas
   - streamlit
 
-## Model Information
+## Model Informationℹ️​
 The application uses a fine-tuned BERT model specifically trained for hate speech detection in multiple languages.
 - Base Model: multilingual-BERT
 - Model Location: [HuggingFace Hub Link](https://huggingface.co/Dolcevitta/toxic-bert-model/tree/main)
@@ -75,13 +77,6 @@ The application uses a fine-tuned BERT model specifically trained for hate speec
   - Accuracy de validación: 0.7950
   - Accuracy de entrenamiento: 0.7950
   - Overfitting: 0.00%
-  ### Base Model
-  - BERT base uncased
-
-  ### Model Details
-  - Task: Binary Classification (Toxic/Non-toxic)
-  - Language: English
-  - Training Dataset: [Toxic Comments Dataset]()
 
   ### Model Details
   - **Base Architecture:** BERT (bert-base-uncased)
