@@ -163,3 +163,11 @@ cython_debug/
 # models/
 models/*.pt
 models/toxic_comments_model.pt
+model-huggin/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.h5
+*.ckpt
+*.zip
