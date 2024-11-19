@@ -1,5 +1,6 @@
-# G2_Youtube
-Analyzing hate messages
+<div align="center">
+  <img src="Designer.png" alt="YouTube Hate Speech Detection Banner" width="800"/>
+</div>
 
 # YouTube Hate Speech Detection
 This application analyzes YouTube comments to detect hate speech using Natural Language Processing and Machine Learning techniques.
@@ -7,12 +8,54 @@ This application analyzes YouTube comments to detect hate speech using Natural L
 ## Overview
 This tool helps identify and analyze hate speech in YouTube comments, providing a way to monitor and understand toxic content in social media platforms.
 
-## Features
-- YouTube comment extraction from video URLs
-- Real-time hate speech detection
-- Sentiment analysis of comments
-- Statistical visualization of results
-- Export results to CSV format
+##🌟 Main Features of Toxic Comment Detector
+
+### 1. User Interface
+- Clear title and application description
+- Text area for comment input
+- "Analyze" and "Clear text" buttons
+
+### 2. Text Processing
+### Automatic text cleaning:
+- Character normalization
+- URL removal
+- Email removal
+- Number removal
+- Special character removal
+
+### 3. Toxicity Analysis
+- Uses a pre-trained BERT model (Dolcevitta/toxic-bert-model)
+- Provides toxicity probability (0-100%)
+- Binary classification (Toxic/Non-toxic)
+- Result visualization with progress bar
+
+### 4. Results Display
+- Shows original and cleaned text
+- Visual indicator of results (green for non-toxic, red for toxic)
+- Progress bar for toxicity level
+- Result interpretation guide:
+  * 0-25%: Safe content
+  * 25-50%: Potentially problematic content
+  * 50-75%: Likely toxic content
+  * 75-100%: Highly toxic content
+
+### 5. Database Management
+- Automatic prediction storage
+- Queryable prediction history
+- Statistics visualization:
+  * Percentage of toxic comments
+  * Total predictions made
+
+### 6. Technical Features
+- Model caching for better performance
+- Error handling
+- Responsive interface with columns
+- Session state for text persistence
+
+### 7. History Visualization
+- Formatted table with all predictions
+- Color coding for classifications
+- Summarized history statistics
 
 ## Technology Stack
 - Programming Language: Python 3.8+
