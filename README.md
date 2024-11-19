@@ -32,6 +32,43 @@ The application uses a fine-tuned BERT model specifically trained for hate speec
   - Accuracy de validación: 0.7950
   - Accuracy de entrenamiento: 0.7950
   - Overfitting: 0.00%
+  ### Base Model
+  - BERT base uncased
+
+  ### Model Details
+  - Task: Binary Classification (Toxic/Non-toxic)
+  - Language: English
+  - Training Dataset: [Toxic Comments Dataset]()
+
+  ### Model Details
+  - **Base Architecture:** BERT (bert-base-uncased)
+  - **Type:** Binary classification
+  - **Maximum sequence length:** 128 tokens
+  - **Language:** English
+  - **Classes:**
+    - 0: Non-toxic
+    - 1: Toxic
+
+  ### Training Hyperparameters
+  - Batch size: 16
+  - Initial learning rate: 2e-5
+  - Epochs: 8 (with early stopping)
+  - Dropout rate: 0.2
+  - Weight decay: 0.01
+  - Optimizer: AdamW
+  - Scheduler: Linear with warmup
+
+  ### Limitations
+  - Model is trained only for English text
+  - Maximum input length: 128 tokens
+  - Model may have inherent biases from the training dataset
+  - Not optimized for very short or very long texts
+
+  ### Intended Use
+  This model is designed for:
+  - Automatic comment moderation
+  - Toxic content detection in online platforms
+  - Toxicity analysis in digital conversations
 
 ## Installation
 1. Clone the repository:
