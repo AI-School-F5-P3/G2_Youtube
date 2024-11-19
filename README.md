@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="asset/Designer.png" alt="YouTube Hate Speech Detection Banner" width="800"/>
+  <img src="asset/Designer.png" alt="YouTube Hate Speech Detection Banner" width="1000" height="400"/>
 </div>
 
 # YouTube Hate Speech Detection
